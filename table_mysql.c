@@ -344,14 +344,9 @@ table_mysql_query(const char *key, int service)
 	MYSQL_BIND	 param[1];
 	unsigned long	 keylen;
 	char		 buffer[LINE_MAX];
-	int		 i, retry_times = 1;
+	int		 i, retries = 1;
 
 retry:
-	retry_times--;
-	if (retry_times < 0) {
-		log_warnx("warn: to many retries");
-		return NULL;
-	}
 	stmt = NULL;
 	for (i = 0; i < SQL_MAX; i++) {
 		if (service == 1 << i) {
@@ -383,8 +378,10 @@ retry:
 	if (mysql_stmt_execute(stmt)) {
 		if (mysql_stmt_errno(stmt)) {
 			log_warnx("warn: trying to reconnect after error: %s", mysql_stmt_error(stmt));
-			if (config_connect(config))
+			if (config_connect(config) && --retries > 0)
 				goto retry;
+			if (retries <= 0)
+				log_warnx("warn: to many retries");
 			return NULL;
 		}
 		log_warnx("warn: mysql_stmt_execute: %s", mysql_stmt_error(stmt));
@@ -513,17 +510,12 @@ table_mysql_fetch(int service, struct dict *params, char *dst, size_t sz)
 {
 	MYSQL_STMT	*stmt;
 	const char	*k;
-	int		 s, retry_times = 1;
+	int		 s, retries = 1;
 
 	if (config->db == NULL && config_connect(config) == 0)
 		return -1;
 
 retry:
-	retry_times--;
-	if (retry_times < 0) {
-		log_warnx("warn: to many retries");
-		return -1;
-	}
 	if (service != K_SOURCE)
 		return -1;
 
@@ -537,8 +529,10 @@ retry:
 	if (mysql_stmt_execute(stmt)) {
 		if (mysql_stmt_errno(stmt)) {
 			log_warnx("warn: trying to reconnect after error: %s", mysql_stmt_error(stmt));
-			if (config_connect(config))
+			if (config_connect(config) && --retries > 0)
 				goto retry;
+			if (retries <= 0)
+				log_warnx("warn: to many retries");
 			return -1;
 		}
 		log_warnx("warn: mysql_stmt_execute: %s", mysql_stmt_error(stmt));
