@@ -344,9 +344,14 @@ table_mysql_query(const char *key, int service)
 	MYSQL_BIND	 param[1];
 	unsigned long	 keylen;
 	char		 buffer[LINE_MAX];
-	int		 i;
+	int		 i, retry_times = 1;
 
 retry:
+	retry_times--;
+	if (retry_times < 0) {
+		log_warnx("warn: to many retries");
+		return NULL;
+	}
 	stmt = NULL;
 	for (i = 0; i < SQL_MAX; i++) {
 		if (service == 1 << i) {
@@ -508,12 +513,17 @@ table_mysql_fetch(int service, struct dict *params, char *dst, size_t sz)
 {
 	MYSQL_STMT	*stmt;
 	const char	*k;
-	int		 s;
+	int		 s, retry_times = 1;
 
 	if (config->db == NULL && config_connect(config) == 0)
 		return -1;
 
 retry:
+	retry_times--;
+	if (retry_times < 0) {
+		log_warnx("warn: to many retries");
+		return -1;
+	}
 	if (service != K_SOURCE)
 		return -1;
 
