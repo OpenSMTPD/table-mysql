@@ -524,7 +524,7 @@ retry:
 
 	if (config->source_ncall < config->source_refresh &&
 	    time(NULL) - config->source_update < config->source_expire)
-	    goto fetch;
+		goto fetch;
 
 	if (mysql_stmt_execute(stmt)) {
 		if (mysql_stmt_errno(stmt)) {
