@@ -1,3 +1,5 @@
+SUBDIRS =		openbsd-compat
+
 noinst_PROGRAMS =	table-mysql
 
 table_mysql_SOURCES =	table_mysql.c dict.c log.c table_stdio.c util.c
